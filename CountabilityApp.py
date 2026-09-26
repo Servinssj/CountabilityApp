@@ -37,18 +37,14 @@ def main(page: ft.Page):
     user_input = ft.TextField(
         label="USUARIO",
         width=320,
-        border_color="#333333",
-        focused_border_color="#00FF66",
-        color=ft.Colors.WHITE,
+        color="white",
     )
     pass_input = ft.TextField(
         label="CONTRASEÑA",
         password=True,
         can_reveal_password=True,
         width=320,
-        border_color="#333333",
-        focused_border_color="#00FF66",
-        color=ft.Colors.WHITE,
+        color="white",
     )
     login_status = ft.Text("", size=14, weight=ft.FontWeight.BOLD)
 
@@ -69,18 +65,18 @@ def main(page: ft.Page):
     login_view = ft.Container(
         content=ft.Column(
             controls=[
-                ft.Text("⚡ GOTEO", size=32, weight=ft.FontWeight.W_900, color=ft.Colors.WHITE),
+                ft.Text("⚡ GOTEO", size=32, weight=ft.FontWeight.W_900, color="white"),
                 ft.Text("Sistema de Control e Inventario", size=14, color="#888888", weight=ft.FontWeight.W_600),
                 ft.Container(height=10),
                 user_input,
                 pass_input,
                 ft.Container(height=10),
-                ft.FilledButton(
+                ft.Button(
                     "ACCEDER ➔",
                     on_click=iniciar_sesion,
                     width=320,
                     style=ft.ButtonStyle(
-                        color=ft.Colors.BLACK,
+                        color="black",
                         bgcolor="#00FF66",
                         shape=ft.RoundedRectangleBorder(radius=4),
                     ),
@@ -116,14 +112,14 @@ def main(page: ft.Page):
         header = ft.Row(
             controls=[
                 ft.Column([
-                    ft.Text(f"// {usuario_actual['nombre'].upper()}", size=18, weight=ft.FontWeight.W_900, color=ft.Colors.WHITE),
+                    ft.Text(f"// {usuario_actual['nombre'].upper()}", size=18, weight=ft.FontWeight.W_900, color="white"),
                     ft.Text(f"ROLE: {usuario_actual['role'].upper()}", size=12, color="#00FF66", weight=ft.FontWeight.BOLD),
                 ]),
-                ft.OutlinedButton(
+                ft.Button(
                     "LOGOUT",
                     on_click=cerrar_sesion,
                     style=ft.ButtonStyle(
-                        color=ft.Colors.WHITE,
+                        color="white",
                         side=ft.BorderSide(1, "#444444"),
                         shape=ft.RoundedRectangleBorder(radius=4)
                     )
@@ -135,11 +131,11 @@ def main(page: ft.Page):
         # -------------------------------------------------------------
         # PESTAÑA 1: VENTAS
         # -------------------------------------------------------------
-        v_drop_prod = ft.Dropdown(label="PRODUCTO", width=340, options=obtener_opciones_productos(), border_color="#333333")
-        v_drop_talla = ft.Dropdown(label="TALLA", width=160, options=[ft.dropdown.Option(t) for t in TALLAS], border_color="#333333")
-        v_drop_color = ft.Dropdown(label="COLOR", width=160, options=[ft.dropdown.Option(c) for c in COLORES], border_color="#333333")
-        v_input_diseno = ft.TextField(label="DISEÑO / ESTAMPADO", width=340, border_color="#333333", hint_text="Ej. Logo Frente / Goteo Back")
-        v_input_cant = ft.TextField(label="CANTIDAD", value="1", width=160, keyboard_type=ft.KeyboardType.NUMBER, border_color="#333333")
+        v_drop_prod = ft.Dropdown(label="PRODUCTO", width=340, options=obtener_opciones_productos())
+        v_drop_talla = ft.Dropdown(label="TALLA", width=160, options=[ft.dropdown.Option(t) for t in TALLAS])
+        v_drop_color = ft.Dropdown(label="COLOR", width=160, options=[ft.dropdown.Option(c) for c in COLORES])
+        v_input_diseno = ft.TextField(label="DISEÑO / ESTAMPADO", width=340, hint_text="Ej. Logo Frente / Goteo Back")
+        v_input_cant = ft.TextField(label="CANTIDAD", value="1", width=160, keyboard_type=ft.KeyboardType.NUMBER)
 
         def registrar_venta(e):
             key = v_drop_prod.value
@@ -149,7 +145,7 @@ def main(page: ft.Page):
             else:
                 cant = int(v_input_cant.value or 0)
                 if cant > productos_db[key]["stock"]:
-                    status_text.value = f"✖ STOCK INSUFFICIENT. DISPONIBLE: {productos_db[key]['stock']}"
+                    status_text.value = f"✖ STOCK INSUFICIENTE. DISPONIBLE: {productos_db[key]['stock']}"
                     status_text.color = "#FF3333"
                 else:
                     productos_db[key]["stock"] -= cant
@@ -168,10 +164,10 @@ def main(page: ft.Page):
                 v_input_diseno,
                 ft.Row([
                     v_input_cant,
-                    ft.FilledButton(
+                    ft.Button(
                         "CONFIRMAR VENTA",
                         on_click=registrar_venta,
-                        style=ft.ButtonStyle(color=ft.Colors.BLACK, bgcolor="#00FF66", shape=ft.RoundedRectangleBorder(radius=4))
+                        style=ft.ButtonStyle(color="black", bgcolor="#00FF66", shape=ft.RoundedRectangleBorder(radius=4))
                     )
                 ], wrap=True)
             ])
@@ -180,10 +176,10 @@ def main(page: ft.Page):
         # -------------------------------------------------------------
         # PESTAÑA 2: AGREGAR STOCK
         # -------------------------------------------------------------
-        s_drop_prod = ft.Dropdown(label="PRODUCTO", width=340, options=obtener_opciones_productos(), border_color="#333333")
-        s_drop_talla = ft.Dropdown(label="TALLA", width=160, options=[ft.dropdown.Option(t) for t in TALLAS], border_color="#333333")
-        s_drop_color = ft.Dropdown(label="COLOR", width=160, options=[ft.dropdown.Option(c) for c in COLORES], border_color="#333333")
-        s_input_cant = ft.TextField(label="AÑADIR CANTIDAD", value="1", width=160, keyboard_type=ft.KeyboardType.NUMBER, border_color="#333333")
+        s_drop_prod = ft.Dropdown(label="PRODUCTO", width=340, options=obtener_opciones_productos())
+        s_drop_talla = ft.Dropdown(label="TALLA", width=160, options=[ft.dropdown.Option(t) for t in TALLAS])
+        s_drop_color = ft.Dropdown(label="COLOR", width=160, options=[ft.dropdown.Option(c) for c in COLORES])
+        s_input_cant = ft.TextField(label="AÑADIR CANTIDAD", value="1", width=160, keyboard_type=ft.KeyboardType.NUMBER)
 
         def registrar_stock(e):
             key = s_drop_prod.value
@@ -207,10 +203,10 @@ def main(page: ft.Page):
                 ft.Row([s_drop_talla, s_drop_color], wrap=True),
                 ft.Row([
                     s_input_cant,
-                    ft.FilledButton(
+                    ft.Button(
                         "+ AÑADIR STOCK",
                         on_click=registrar_stock,
-                        style=ft.ButtonStyle(color=ft.Colors.BLACK, bgcolor="#00E5FF", shape=ft.RoundedRectangleBorder(radius=4))
+                        style=ft.ButtonStyle(color="black", bgcolor="#00E5FF", shape=ft.RoundedRectangleBorder(radius=4))
                     )
                 ], wrap=True)
             ])
@@ -219,11 +215,11 @@ def main(page: ft.Page):
         # -------------------------------------------------------------
         # PESTAÑA 3: PEDIDOS
         # -------------------------------------------------------------
-        p_input_cliente = ft.TextField(label="NOMBRE DEL CLIENTE", width=340, border_color="#333333")
-        p_drop_prod = ft.Dropdown(label="PRODUCTO", width=340, options=obtener_opciones_productos(), border_color="#333333")
-        p_drop_talla = ft.Dropdown(label="TALLA", width=160, options=[ft.dropdown.Option(t) for t in TALLAS], border_color="#333333")
-        p_drop_color = ft.Dropdown(label="COLOR", width=160, options=[ft.dropdown.Option(c) for c in COLORES], border_color="#333333")
-        p_input_diseno = ft.TextField(label="DISEÑO DETALLADO", width=340, border_color="#333333")
+        p_input_cliente = ft.TextField(label="NOMBRE DEL CLIENTE", width=340)
+        p_drop_prod = ft.Dropdown(label="PRODUCTO", width=340, options=obtener_opciones_productos())
+        p_drop_talla = ft.Dropdown(label="TALLA", width=160, options=[ft.dropdown.Option(t) for t in TALLAS])
+        p_drop_color = ft.Dropdown(label="COLOR", width=160, options=[ft.dropdown.Option(c) for c in COLORES])
+        p_input_diseno = ft.TextField(label="DISEÑO DETALLADO", width=340)
         
         lista_pedidos_ui = ft.Column()
 
@@ -270,10 +266,10 @@ def main(page: ft.Page):
                 p_drop_prod,
                 ft.Row([p_drop_talla, p_drop_color], wrap=True),
                 p_input_diseno,
-                ft.FilledButton(
+                ft.Button(
                     "GUARDAR PEDIDO",
                     on_click=agregar_pedido,
-                    style=ft.ButtonStyle(color=ft.Colors.BLACK, bgcolor="#FF9900", shape=ft.RoundedRectangleBorder(radius=4))
+                    style=ft.ButtonStyle(color="black", bgcolor="#FF9900", shape=ft.RoundedRectangleBorder(radius=4))
                 ),
                 ft.Divider(color="#333333"),
                 ft.Text("📌 PEDIDOS REGISTRADOS:", size=14, weight=ft.FontWeight.BOLD, color="#888888"),
@@ -281,26 +277,32 @@ def main(page: ft.Page):
             ])
         )
 
-        # Helper para actualizar todos los desplegables al modificar el stock
         def actualizar_todos_los_dropdowns():
             nuevas_opciones = obtener_opciones_productos()
             v_drop_prod.options = nuevas_opciones
             s_drop_prod.options = nuevas_opciones
             p_drop_prod.options = nuevas_opciones
 
-        # Lista de pestañas
-        tabs_list = [
-            ft.Tab(text="VENTAS", icon=ft.Icons.SHOPPING_CART_OUTLINED, content=tab_ventas),
-            ft.Tab(text="STOCK", icon=ft.Icons.ADD_BOX_OUTLINED, content=tab_stock),
-            ft.Tab(text="PEDIDOS", icon=ft.Icons.ASSIGNMENT_OUTLINED, content=tab_pedidos),
-        ]
+        # Mapeo de vistas según botón presionado
+        tabs_map = {
+            0: tab_ventas,
+            1: tab_stock,
+            2: tab_pedidos
+        }
 
-        # -------------------------------------------------------------
-        # PESTAÑA 4: ADMIN (Solo si el rol es admin)
-        # -------------------------------------------------------------
+        # Contenedor para desplegar el contenido activo
+        content_area = ft.Container(content=tab_ventas, expand=True)
+
+        # Botones de navegación estándar
+        btn_ventas = ft.Button("VENTAS", style=ft.ButtonStyle(color="white", bgcolor="#1A1A1A"))
+        btn_stock = ft.Button("STOCK", style=ft.ButtonStyle(color="white", bgcolor="#1A1A1A"))
+        btn_pedidos = ft.Button("PEDIDOS", style=ft.ButtonStyle(color="white", bgcolor="#1A1A1A"))
+
+        tab_buttons = [btn_ventas, btn_stock, btn_pedidos]
+
         if usuario_actual["role"] == "admin":
-            a_drop_prod = ft.Dropdown(label="SELECCIONAR PRODUCTO", width=340, options=obtener_opciones_productos(), border_color="#333333")
-            a_input_precio = ft.TextField(label="NUEVO PRECIO ($)", width=160, keyboard_type=ft.KeyboardType.NUMBER, border_color="#333333")
+            a_drop_prod = ft.Dropdown(label="SELECCIONAR PRODUCTO", width=340, options=obtener_opciones_productos())
+            a_input_precio = ft.TextField(label="NUEVO PRECIO ($)", width=160, keyboard_type=ft.KeyboardType.NUMBER)
 
             def cambiar_precio(e):
                 key = a_drop_prod.value
@@ -314,10 +316,10 @@ def main(page: ft.Page):
                     actualizar_todos_los_dropdowns()
                 page.update()
 
-            a_nuevo_id = ft.TextField(label="ID (EJ: P005)", width=120, border_color="#333333")
-            a_nuevo_nombre = ft.TextField(label="NOMBRE MODELO", width=200, border_color="#333333")
-            a_nuevo_stock = ft.TextField(label="STOCK INICIAL", width=120, value="0", border_color="#333333")
-            a_nuevo_precio = ft.TextField(label="PRECIO ($)", width=120, value="0", border_color="#333333")
+            a_nuevo_id = ft.TextField(label="ID (EJ: P005)", width=120)
+            a_nuevo_nombre = ft.TextField(label="NOMBRE MODELO", width=200)
+            a_nuevo_stock = ft.TextField(label="STOCK INICIAL", width=120, value="0")
+            a_nuevo_precio = ft.TextField(label="PRECIO ($)", width=120, value="0")
 
             def crear_producto(e):
                 if not a_nuevo_id.value or not a_nuevo_nombre.value:
@@ -341,7 +343,7 @@ def main(page: ft.Page):
                     ft.Row([
                         a_drop_prod,
                         a_input_precio,
-                        ft.FilledButton("ACTUALIZAR PRECIO", on_click=cambiar_precio, style=ft.ButtonStyle(color=ft.Colors.WHITE, bgcolor="#BD00FF"))
+                        ft.Button("ACTUALIZAR PRECIO", on_click=cambiar_precio, style=ft.ButtonStyle(color="white", bgcolor="#BD00FF"))
                     ], wrap=True),
                     ft.Divider(color="#333333"),
                     ft.Text("➕ AGREGAR NUEVO MODELO AL CATÁLOGO", size=14, weight=ft.FontWeight.BOLD, color="#888888"),
@@ -349,26 +351,35 @@ def main(page: ft.Page):
                     ft.Row([
                         a_nuevo_stock,
                         a_nuevo_precio,
-                        ft.FilledButton("CREAR PRODUCTO", on_click=crear_producto, style=ft.ButtonStyle(color=ft.Colors.BLACK, bgcolor=ft.Colors.WHITE))
+                        ft.Button("CREAR PRODUCTO", on_click=crear_producto, style=ft.ButtonStyle(color="black", bgcolor="white"))
                     ], wrap=True)
                 ])
             )
-            tabs_list.append(ft.Tab(text="ADMIN", icon=ft.Icons.ADMIN_PANEL_SETTINGS_OUTLINED, content=tab_admin))
+            btn_admin = ft.Button("ADMIN", style=ft.ButtonStyle(color="white", bgcolor="#1A1A1A"))
+            tab_buttons.append(btn_admin)
+            tabs_map[3] = tab_admin
 
-        # Pestaña Principal
-        tabs_view = ft.Tabs(
-            selected_index=0,
-            animation_duration=300,
-            tabs=tabs_list,
-            expand=True
-        )
+        # Asignar eventos de navegación
+        def select_tab(idx):
+            content_area.content = tabs_map[idx]
+            page.update()
+
+        btn_ventas.on_click = lambda e: select_tab(0)
+        btn_stock.on_click = lambda e: select_tab(1)
+        btn_pedidos.on_click = lambda e: select_tab(2)
+        if usuario_actual["role"] == "admin":
+            tab_buttons[3].on_click = lambda e: select_tab(3)
+
+        nav_bar = ft.Row(controls=tab_buttons, spacing=10)
 
         page.add(
             ft.Column([
                 header,
                 ft.Divider(color="#222222", thickness=2),
                 status_text,
-                tabs_view
+                nav_bar,
+                ft.Divider(color="#333333", thickness=1),
+                content_area
             ], expand=True)
         )
         page.update()
