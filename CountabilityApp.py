@@ -17,7 +17,7 @@ productos_db = {
 }
 
 def main(page: ft.Page):
-    page.title = "INVENTORY // STREETWEAR CONTROL"
+    page.title = "INVENTARIO // GOTEO"
     page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = "#121212"  # Fondo negro/gris muy oscuro
     page.padding = 24
