@@ -17,10 +17,13 @@ productos_db = {
 }
 
 def main(page: ft.Page):
-    page.title = "CONTROL DE INVENTARIO // GOTEO "
+    page.title = "CONTROL DE INVENTARIO // GOTEO"
     page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = "#121212"  # Fondo negro/gris muy oscuro
     page.padding = 24
+    
+    # Habilita el desplazamiento en toda la página
+    page.scroll = ft.ScrollMode.AUTO
 
     # Variable para guardar el usuario logueado
     usuario_actual = {"nombre": "", "role": ""}
@@ -80,8 +83,9 @@ def main(page: ft.Page):
                 login_status,
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            scroll=ft.ScrollMode.AUTO,  # Desplazamiento si la pantalla es muy pequeña
         ),
-        alignment=ft.Alignment(0, 0),  # Corregido para compatibilidad con Flet reciente
+        alignment=ft.Alignment(0, 0),
         padding=20,
     )
 
@@ -188,22 +192,28 @@ def main(page: ft.Page):
             ft.Text("⚡ OPERACIONES DE STOCK", size=16, weight=ft.FontWeight.BOLD, color="#888888"),
             dropdown_prod,
             ft.Container(height=5),
-            ft.Row([
-                cant_venta,
-                ft.FilledButton(
-                    "REGISTRAR VENTA",
-                    on_click=registrar_venta,
-                    style=ft.ButtonStyle(color=ft.Colors.BLACK, bgcolor="#00FF66", shape=ft.RoundedRectangleBorder(radius=4))
-                )
-            ]),
-            ft.Row([
-                cant_entrada,
-                ft.FilledButton(
-                    "+ INVENTARIO",
-                    on_click=registrar_entrada,
-                    style=ft.ButtonStyle(color=ft.Colors.BLACK, bgcolor="#00E5FF", shape=ft.RoundedRectangleBorder(radius=4))
-                )
-            ]),
+            ft.Row(
+                [
+                    cant_venta,
+                    ft.FilledButton(
+                        "REGISTRAR VENTA",
+                        on_click=registrar_venta,
+                        style=ft.ButtonStyle(color=ft.Colors.BLACK, bgcolor="#00FF66", shape=ft.RoundedRectangleBorder(radius=4))
+                    )
+                ],
+                wrap=True  # Permite que los elementos pasen abajo si la pantalla es estrecha
+            ),
+            ft.Row(
+                [
+                    cant_entrada,
+                    ft.FilledButton(
+                        "+ INVENTARIO",
+                        on_click=registrar_entrada,
+                        style=ft.ButtonStyle(color=ft.Colors.BLACK, bgcolor="#00E5FF", shape=ft.RoundedRectangleBorder(radius=4))
+                    )
+                ],
+                wrap=True
+            ),
             ft.Container(height=5),
             status_text,
         ]
@@ -253,30 +263,43 @@ def main(page: ft.Page):
             vistas_admin = [
                 ft.Divider(color="#222222", thickness=2),
                 ft.Text("🛠️ PANEL DE CONTROL // ADMIN", size=16, weight=ft.FontWeight.BOLD, color="#BD00FF"),
-                ft.Row([
-                    precio_edit,
-                    ft.FilledButton(
-                        "EDITAR PRECIO",
-                        on_click=cambiar_precio,
-                        style=ft.ButtonStyle(color=ft.Colors.WHITE, bgcolor="#BD00FF", shape=ft.RoundedRectangleBorder(radius=4))
-                    )
-                ]),
+                ft.Row(
+                    [
+                        precio_edit,
+                        ft.FilledButton(
+                            "EDITAR PRECIO",
+                            on_click=cambiar_precio,
+                            style=ft.ButtonStyle(color=ft.Colors.WHITE, bgcolor="#BD00FF", shape=ft.RoundedRectangleBorder(radius=4))
+                        )
+                    ],
+                    wrap=True
+                ),
                 ft.Container(height=10),
                 ft.Text("➕ AÑADIR NUEVO ITEM AL DROPLIST", size=14, weight=ft.FontWeight.BOLD, color="#888888"),
-                ft.Row([nuevo_id, nuevo_nombre]),
-                ft.Row([
-                    nuevo_stock,
-                    nuevo_precio,
-                    ft.FilledButton(
-                        "CREAR ITEM",
-                        on_click=agregar_producto,
-                        style=ft.ButtonStyle(color=ft.Colors.BLACK, bgcolor=ft.Colors.WHITE, shape=ft.RoundedRectangleBorder(radius=4))
-                    )
-                ]),
+                ft.Row([nuevo_id, nuevo_nombre], wrap=True),
+                ft.Row(
+                    [
+                        nuevo_stock,
+                        nuevo_precio,
+                        ft.FilledButton(
+                            "CREAR ITEM",
+                            on_click=agregar_producto,
+                            style=ft.ButtonStyle(color=ft.Colors.BLACK, bgcolor=ft.Colors.WHITE, shape=ft.RoundedRectangleBorder(radius=4))
+                        )
+                    ],
+                    wrap=True
+                ),
             ]
             vistas_usuario.extend(vistas_admin)
 
-        page.add(ft.Column(controls=vistas_usuario, scroll=ft.ScrollMode.AUTO))
+        # Usamos una Column con scroll automático habilitado
+        page.add(
+            ft.Column(
+                controls=vistas_usuario,
+                scroll=ft.ScrollMode.AUTO,
+                expand=True
+            )
+        )
         page.update()
 
     page.add(login_view)
