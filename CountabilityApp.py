@@ -61,8 +61,8 @@ def main(page: ft.Page):
     login_view = ft.Container(
         content=ft.Column(
             controls=[
-                ft.Text("⚡ STREETLAB", size=32, weight=ft.FontWeight.W_900, color=ft.Colors.WHITE),
-                ft.Text("// ENTER SYSTEM", size=14, color="#888888", weight=ft.FontWeight.W_600),
+                ft.Text("⚡ GOTEO", size=32, weight=ft.FontWeight.W_900, color=ft.Colors.WHITE),
+                ft.Text("Sistema de control", size=14, color="#FFFFFF", weight=ft.FontWeight.W_600),
                 ft.Container(height=10),
                 user_input,
                 pass_input,
