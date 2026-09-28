@@ -4,11 +4,19 @@ import time
 import threading
 import requests
 import flet as ft
+import gspread
+from google.oauth2.service_account import Credentials
 
-DB_FILE = "database.json"
 MAX_USUARIOS = 5  # Límite máximo de usuarios permitidos
 
-# Datos iniciales / por defecto si no existe database.json
+# Configuración y Scopes de Google Sheets
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
+CREDENTIALS_FILE = "credentials.json"
+
+# Datos iniciales / por defecto si la hoja de Google Sheets está vacía
 DEFAULT_USUARIOS_DB = {
     "servin": {"password": "123", "role": "admin", "nombre": "Administrador"},
     "harry": {"password": "123", "role": "usuario", "nombre": "Harry"},
@@ -35,8 +43,18 @@ DEFAULT_FINANZAS_DB = {
 }
 
 # -------------------------------------------------------------
-# FUNCIONES DE RESPALDO Y CARGA DE DATOS (JSON)
+# CONEXIÓN Y PERSISTENCIA CON GOOGLE SHEETS
 # -------------------------------------------------------------
+def obtener_cliente_sheets():
+    # Intenta leer desde la variable de entorno de Render; si no, usa el archivo local credentials.json
+    if "GOOGLE_CREDENTIALS" in os.environ:
+        creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+        creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+    else:
+        creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
+    
+    return gspread.authorize(creds)
+
 def guardar_datos():
     data = {
         "usuarios": USUARIOS_DB,
@@ -46,27 +64,32 @@ def guardar_datos():
         "finanzas": finanzas_db
     }
     try:
-        with open(DB_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+        client = obtener_cliente_sheets()
+        sheet = client.open("GOTEO_DB").sheet1
+        sheet.update_acell("A1", json.dumps(data, ensure_ascii=False))
+        print("✔ Datos guardados exitosamente en Google Sheets.")
     except Exception as err:
-        print(f"Error al guardar datos: {err}")
+        print(f"Error al guardar datos en Google Sheets: {err}")
 
 def cargar_datos():
     global USUARIOS_DB, productos_db, pedidos_db, historial_db, finanzas_db
-    if os.path.exists(DB_FILE):
-        try:
-            with open(DB_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                USUARIOS_DB = data.get("usuarios", DEFAULT_USUARIOS_DB)
-                productos_db = data.get("productos", DEFAULT_PRODUCTOS_DB)
-                pedidos_db = data.get("pedidos", [])
-                historial_db = data.get("historial", [])
-                finanzas_db = data.get("finanzas", DEFAULT_FINANZAS_DB)
-                return
-        except Exception as err:
-            print(f"Error al cargar base de datos: {err}")
+    try:
+        client = obtener_cliente_sheets()
+        sheet = client.open("GOTEO_DB").sheet1
+        val = sheet.acell("A1").value
+        if val:
+            data = json.loads(val)
+            USUARIOS_DB = data.get("usuarios", DEFAULT_USUARIOS_DB)
+            productos_db = data.get("productos", DEFAULT_PRODUCTOS_DB)
+            pedidos_db = data.get("pedidos", [])
+            historial_db = data.get("historial", [])
+            finanzas_db = data.get("finanzas", DEFAULT_FINANZAS_DB)
+            print("✔ Datos cargados correctamente desde Google Sheets.")
+            return
+    except Exception as err:
+        print(f"Error al cargar desde Google Sheets (usando valores por defecto): {err}")
 
-    # Si no existe archivo, carga valores iniciales
+    # Carga de fallback con valores iniciales si falla o está vacía la hoja
     USUARIOS_DB = DEFAULT_USUARIOS_DB
     productos_db = DEFAULT_PRODUCTOS_DB
     pedidos_db = []
@@ -415,7 +438,7 @@ def main(page: ft.Page):
                             })
 
                             pedidos_db.pop(pedido_index)
-                            guardar_datos()  # Persistencia de datos
+                            guardar_datos()  # Persistencia en Google Sheets
 
                             status_text.value = f"✔ PROCESADO | Cliente: {p['cliente']} | Total: ${monto_venta}"
                             status_text.color = "#00FF66"
@@ -428,21 +451,19 @@ def main(page: ft.Page):
                                 renderizar_historial()
                         page.update()
 
-                    # CÓDIGO CORREGIDO
                     item_row = ft.Container(
                         padding=12,
                         bgcolor="#1E1E1E",
                         border_radius=6,
                         content=ft.Column([
                             ft.Row([
-                                # Se agrega expand=True para que tome solo el espacio restante disponible
                                 ft.Column([
                                     ft.Text(f"👤 CLIENTE: {ped['cliente']}", size=14, weight=ft.FontWeight.BOLD, color="white"),
                                     ft.Text(
                                         detalle_texto, 
                                         size=13, 
                                         color="#CCCCCC", 
-                                        selectable=True  # Permite seleccionar si es necesario
+                                        selectable=True
                                     ),
                                 ], expand=True),
                                 
@@ -500,7 +521,7 @@ def main(page: ft.Page):
                     "detalle": f"Agregó +{cant} unidades a {prod_nombre} [{s_drop_talla.value}/{s_drop_color.value}] (Valor: ${costo_adicional})"
                 })
 
-                guardar_datos()  # Persistencia de datos
+                guardar_datos()  # Persistencia en Google Sheets
 
                 status_text.value = f"📦 REABASTECIDO: +{cant} unidades de {prod_nombre}. Total stock: {productos_db[key]['stock']}"
                 status_text.color = "#00E5FF"
@@ -629,7 +650,7 @@ def main(page: ft.Page):
                 })
 
             pedidos_db.append(nuevo_pedido)
-            guardar_datos()  # Persistencia de datos
+            guardar_datos()  # Persistencia en Google Sheets
 
             status_text.value = f"📝 PEDIDO REGISTRADO PARA {nuevo_pedido['cliente']}"
             status_text.color = "#FF9900"
@@ -752,7 +773,7 @@ def main(page: ft.Page):
                     status_text.color = "#FFCC00"
                 else:
                     productos_db[key]["precio"] = float(a_input_precio.value)
-                    guardar_datos()  # Persistencia de datos
+                    guardar_datos()  # Persistencia en Google Sheets
 
                     status_text.value = f"💲 PRECIO ACTUALIZADO A ${productos_db[key]['precio']}"
                     status_text.color = "#BD00FF"
@@ -778,7 +799,7 @@ def main(page: ft.Page):
                         "es_dtf": False
                     }
                     finanzas_db["total_invertido_stock"] += int(a_nuevo_stock.value or 0) * float(a_nuevo_precio.value or 0)
-                    guardar_datos()  # Persistencia de datos
+                    guardar_datos()  # Persistencia en Google Sheets
 
                     status_text.value = f"🔥 NUEVO MODELO '{a_nuevo_nombre.value.upper()}' CREADO."
                     status_text.color = "#BD00FF"
