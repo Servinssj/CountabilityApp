@@ -11,12 +11,13 @@ USUARIOS_DB = {
 productos_db = {
     "P001": {"nombre": "PLAYERA REGULAR - JHK", "stock": 30, "precio": 500, "es_dtf": False},
     "P002": {"nombre": "PLAYERA OVERSIZED - JHK", "stock": 25, "precio": 450, "es_dtf": False},
-    "P003": {"nombre": "HOODIE - JHK", "stock": 15, "precio": 850, "es_dtf": False},
-    "P004": {"nombre": "SUETER - JHK", "stock": 20, "precio": 750, "es_dtf": False},
-    "P005": {"nombre": "PLAYERA MALAGA - CBK (Regular)", "stock": 10, "precio": 950, "es_dtf": False},
-    "P006": {"nombre": "PLAYERA MÉRIDA - CBK (Oversized)", "stock": 10, "precio": 950, "es_dtf": False},
-    "P007": {"nombre": "PLAYERA MALAGA - CBK (Mineral Wash)", "stock": 10, "precio": 950, "es_dtf": False},
-    "P008": {"nombre": "PLAYERA TAMPA - CBK (BOXY)", "stock": 10, "precio": 950, "es_dtf": False},
+    "P003": {"nombre": "PLAYERA OVERSIZED - JHK", "stock": 25, "precio": 450, "es_dtf": False},
+    "P004": {"nombre": "HOODIE - JHK", "stock": 15, "precio": 850, "es_dtf": False},
+    "P005": {"nombre": "SUETER - JHK", "stock": 20, "precio": 750, "es_dtf": False},
+    "P006": {"nombre": "PLAYERA MALAGA - CBK (Regular)", "stock": 10, "precio": 950, "es_dtf": False},
+    "P007": {"nombre": "PLAYERA MÉRIDA - CBK (Oversized)", "stock": 10, "precio": 950, "es_dtf": False},
+    "P008": {"nombre": "PLAYERA MALAGA - CBK (Mineral Wash)", "stock": 10, "precio": 950, "es_dtf": False},
+    "P009": {"nombre": "PLAYERA TAMPA - CBK (BOXY)", "stock": 10, "precio": 950, "es_dtf": False},
     "P_DTF": {"nombre": "IMPRESIÓN DTF (MEDIDA ESPECIAL)", "stock": 0, "precio": 0, "es_dtf": True},
 }
 
