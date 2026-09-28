@@ -1,0 +1,87 @@
+{
+    "usuarios": {
+        "servin": {
+            "password": "123",
+            "role": "admin",
+            "nombre": "Administrador"
+        },
+        "harry": {
+            "password": "123",
+            "role": "usuario",
+            "nombre": "Harry"
+        },
+        "raper": {
+            "password": "123",
+            "role": "usuario",
+            "nombre": "Raper"
+        },
+        "tomi": {
+            "password": "123",
+            "role": "usuario",
+            "nombre": "Tomi"
+        }
+    },
+    "productos": {
+        "P001": {
+            "nombre": "PLAYERA REGULAR - JHK",
+            "stock": 0,
+            "precio": 500,
+            "es_dtf": false
+        },
+        "P002": {
+            "nombre": "PLAYERA OVERSIZED - JHK",
+            "stock": 0,
+            "precio": 450,
+            "es_dtf": false
+        },
+        "P003": {
+            "nombre": "HOODIE - JHK",
+            "stock": 0,
+            "precio": 850,
+            "es_dtf": false
+        },
+        "P004": {
+            "nombre": "SUETER - JHK",
+            "stock": 0,
+            "precio": 750,
+            "es_dtf": false
+        },
+        "P005": {
+            "nombre": "PLAYERA MALAGA - CBK (Regular)",
+            "stock": 0,
+            "precio": 950,
+            "es_dtf": false
+        },
+        "P006": {
+            "nombre": "PLAYERA MÉRIDA - CBK (Oversized)",
+            "stock": 0,
+            "precio": 950,
+            "es_dtf": false
+        },
+        "P007": {
+            "nombre": "PLAYERA MALAGA - CBK (Mineral Wash)",
+            "stock": 0,
+            "precio": 950,
+            "es_dtf": false
+        },
+        "P008": {
+            "nombre": "PLAYERA TAMPA - CBK (BOXY)",
+            "stock": 0,
+            "precio": 950,
+            "es_dtf": false
+        },
+        "P_DTF": {
+            "nombre": "IMPRESIÓN DTF (MEDIDA ESPECIAL)",
+            "stock": 0,
+            "precio": 0,
+            "es_dtf": true
+        }
+    },
+    "pedidos": [],
+    "historial": [],
+    "finanzas": {
+        "total_ingresado_ventas": 0.0,
+        "total_invertido_stock": 0.0,
+        "total_gastos_dtf": 0.0
+    }
+}

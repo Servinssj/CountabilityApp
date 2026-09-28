@@ -1,34 +1,105 @@
 import os
+import json
+import time
+import threading
+import requests
 import flet as ft
 
-USUARIOS_DB = {
+DB_FILE = "database.json"
+MAX_USUARIOS = 5  # Límite máximo de usuarios permitidos
+
+# Datos iniciales / por defecto si no existe database.json
+DEFAULT_USUARIOS_DB = {
     "servin": {"password": "123", "role": "admin", "nombre": "Administrador"},
     "harry": {"password": "123", "role": "usuario", "nombre": "Harry"},
     "raper": {"password": "123", "role": "usuario", "nombre": "Raper"},
     "tomi": {"password": "123", "role": "usuario", "nombre": "Tomi"},
 }
 
-productos_db = {
+DEFAULT_PRODUCTOS_DB = {
     "P001": {"nombre": "PLAYERA REGULAR - JHK", "stock": 0, "precio": 500, "es_dtf": False},
     "P002": {"nombre": "PLAYERA OVERSIZED - JHK", "stock": 0, "precio": 450, "es_dtf": False},
-    "P003": {"nombre": "PLAYERA OVERSIZED - JHK", "stock": 0, "precio": 450, "es_dtf": False},
-    "P004": {"nombre": "HOODIE - JHK", "stock": 0, "precio": 850, "es_dtf": False},
-    "P005": {"nombre": "SUETER - JHK", "stock": 0, "precio": 750, "es_dtf": False},
-    "P006": {"nombre": "PLAYERA MALAGA - CBK (Regular)", "stock": 0, "precio": 950, "es_dtf": False},
-    "P007": {"nombre": "PLAYERA MÉRIDA - CBK (Oversized)", "stock": 0, "precio": 950, "es_dtf": False},
-    "P008": {"nombre": "PLAYERA MALAGA - CBK (Mineral Wash)", "stock": 0, "precio": 950, "es_dtf": False},
-    "P009": {"nombre": "PLAYERA TAMPA - CBK (BOXY)", "stock": 0, "precio": 950, "es_dtf": False},
+    "P003": {"nombre": "HOODIE - JHK", "stock": 0, "precio": 850, "es_dtf": False},
+    "P004": {"nombre": "SUETER - JHK", "stock": 0, "precio": 750, "es_dtf": False},
+    "P005": {"nombre": "PLAYERA MALAGA - CBK (Regular)", "stock": 0, "precio": 950, "es_dtf": False},
+    "P006": {"nombre": "PLAYERA MÉRIDA - CBK (Oversized)", "stock": 0, "precio": 950, "es_dtf": False},
+    "P007": {"nombre": "PLAYERA MALAGA - CBK (Mineral Wash)", "stock": 0, "precio": 950, "es_dtf": False},
+    "P008": {"nombre": "PLAYERA TAMPA - CBK (BOXY)", "stock": 0, "precio": 950, "es_dtf": False},
     "P_DTF": {"nombre": "IMPRESIÓN DTF (MEDIDA ESPECIAL)", "stock": 0, "precio": 0, "es_dtf": True},
 }
 
-pedidos_db = []
-historial_db = []
-finanzas_db = {
+DEFAULT_FINANZAS_DB = {
     "total_ingresado_ventas": 0.0,
-    "total_invertido_stock": sum(p["stock"] * p["precio"] for p in productos_db.values() if not p.get("es_dtf")),
+    "total_invertido_stock": 0.0,
     "total_gastos_dtf": 0.0
 }
 
+# -------------------------------------------------------------
+# FUNCIONES DE RESPALDO Y CARGA DE DATOS (JSON)
+# -------------------------------------------------------------
+def guardar_datos():
+    data = {
+        "usuarios": USUARIOS_DB,
+        "productos": productos_db,
+        "pedidos": pedidos_db,
+        "historial": historial_db,
+        "finanzas": finanzas_db
+    }
+    try:
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+    except Exception as err:
+        print(f"Error al guardar datos: {err}")
+
+def cargar_datos():
+    global USUARIOS_DB, productos_db, pedidos_db, historial_db, finanzas_db
+    if os.path.exists(DB_FILE):
+        try:
+            with open(DB_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                USUARIOS_DB = data.get("usuarios", DEFAULT_USUARIOS_DB)
+                productos_db = data.get("productos", DEFAULT_PRODUCTOS_DB)
+                pedidos_db = data.get("pedidos", [])
+                historial_db = data.get("historial", [])
+                finanzas_db = data.get("finanzas", DEFAULT_FINANZAS_DB)
+                return
+        except Exception as err:
+            print(f"Error al cargar base de datos: {err}")
+
+    # Si no existe archivo, carga valores iniciales
+    USUARIOS_DB = DEFAULT_USUARIOS_DB
+    productos_db = DEFAULT_PRODUCTOS_DB
+    pedidos_db = []
+    historial_db = []
+    finanzas_db = DEFAULT_FINANZAS_DB
+    guardar_datos()
+
+# Inicialización de bases de datos
+USUARIOS_DB = {}
+productos_db = {}
+pedidos_db = []
+historial_db = []
+finanzas_db = {}
+cargar_datos()
+
+# -------------------------------------------------------------
+# THREADING: KEEP ALIVE PING AUTOMÁTICO
+# -------------------------------------------------------------
+def keep_alive():
+    url = "https://countabilityapp.onrender.com"
+    while True:
+        time.sleep(600)  # Cada 10 minutos (600 s)
+        try:
+            requests.get(url, timeout=10)
+            print("⚡ Ping automático enviado exitosamente")
+        except Exception as err:
+            print(f"Error enviando ping: {err}")
+
+threading.Thread(target=keep_alive, daemon=True).start()
+
+# -------------------------------------------------------------
+# PALETAS Y CONFIGURACIONES GENERALES
+# -------------------------------------------------------------
 COLORES_HEX = {
     "Negro": "#000000",
     "Blanco": "#FFFFFF",
@@ -38,7 +109,6 @@ COLORES_HEX = {
 }
 
 TALLAS = ["CH (S)", "M", "G (L)", "XG (XL)"]
-TIPOS_DTF = ["Textil", "UV"]
 METODOS_PAGO = ["Efectivo", "Transferencia"]
 
 def main(page: ft.Page):
@@ -68,6 +138,70 @@ def main(page: ft.Page):
             login_status.color = "#FF3333"
             page.update()
 
+    # POPUP / DIÁLOGO PARA CREAR CUENTA (MÁX 5 USUARIOS)
+    def abrir_modal_registro(e):
+        if len(USUARIOS_DB) >= MAX_USUARIOS:
+            login_status.value = f"⚠️ LÍMITE ALCANZADO (MÁXIMO {MAX_USUARIOS} CUENTAS)."
+            login_status.color = "#FFCC00"
+            page.update()
+            return
+
+        reg_user = ft.TextField(label="NUEVO USUARIO", width=280, color="white")
+        reg_pass = ft.TextField(label="CONTRASEÑA", password=True, can_reveal_password=True, width=280, color="white")
+        reg_nombre = ft.TextField(label="NOMBRE / APODO", width=280, color="white")
+        reg_status = ft.Text("", size=12, weight=ft.FontWeight.BOLD)
+
+        def registrar_nuevo_usuario(ev):
+            u = reg_user.value.strip().lower()
+            p = reg_pass.value.strip()
+            nom = reg_nombre.value.strip()
+
+            if not u or not p or not nom:
+                reg_status.value = "⚠️ RELLENA TODOS LOS CAMPOS"
+                reg_status.color = "#FFCC00"
+            elif u in USUARIOS_DB:
+                reg_status.value = "✖ EL USUARIO YA EXISTE"
+                reg_status.color = "#FF3333"
+            elif len(USUARIOS_DB) >= MAX_USUARIOS:
+                reg_status.value = f"✖ LÍMITE ALCANZADO ({MAX_USUARIOS} CUENTAS)"
+                reg_status.color = "#FF3333"
+            else:
+                USUARIOS_DB[u] = {
+                    "password": p,
+                    "role": "usuario",
+                    "nombre": nom.capitalize()
+                }
+                guardar_datos()
+                dlg_registro.open = False
+                login_status.value = f"✔ CUENTA CREADA PARA '{u.upper()}'. ¡YA PUEDES INGRESAR!"
+                login_status.color = "#00FF66"
+                page.update()
+
+        def cerrar_dialogo(ev):
+            dlg_registro.open = False
+            page.update()
+
+        dlg_registro = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("👤 CREAR CUENTA NUEVA", weight=ft.FontWeight.BOLD, color="#00FF66"),
+            content=ft.Column([
+                ft.Text(f"Cuentas activas: {len(USUARIOS_DB)} / {MAX_USUARIOS}", size=12, color="#888888"),
+                reg_user,
+                reg_pass,
+                reg_nombre,
+                reg_status
+            ], height=220, spacing=10),
+            actions=[
+                ft.Button("CANCELAR", on_click=cerrar_dialogo, style=ft.ButtonStyle(color="white")),
+                ft.Button("REGISTRAR", on_click=registrar_nuevo_usuario, style=ft.ButtonStyle(color="black", bgcolor="#00FF66"))
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+
+        page.overlay.append(dlg_registro)
+        dlg_registro.open = True
+        page.update()
+
     login_view = ft.Container(
         content=ft.Column(
             controls=[
@@ -82,6 +216,12 @@ def main(page: ft.Page):
                     on_click=iniciar_sesion,
                     width=320,
                     style=ft.ButtonStyle(color="black", bgcolor="#00FF66", shape=ft.RoundedRectangleBorder(radius=4)),
+                ),
+                ft.Button(
+                    "➕ CREAR CUENTA",
+                    on_click=abrir_modal_registro,
+                    width=320,
+                    style=ft.ButtonStyle(color="white", side=ft.BorderSide(1, "#00FF66"), shape=ft.RoundedRectangleBorder(radius=4)),
                 ),
                 login_status,
             ],
@@ -164,9 +304,8 @@ def main(page: ft.Page):
         )
 
         def renderizar_finanzas():
-            v_total = finanzas_db["total_ingresado_ventas"]
-            # Inversión total acumula tanto stock como compras de DTF
-            inversion_total = finanzas_db["total_invertido_stock"] + finanzas_db["total_gastos_dtf"]
+            v_total = finanzas_db.get("total_ingresado_ventas", 0.0)
+            inversion_total = finanzas_db.get("total_invertido_stock", 0.0) + finanzas_db.get("total_gastos_dtf", 0.0)
             balance = v_total - inversion_total
             
             txt_ventas_total.value = f"${v_total:,.2f}"
@@ -262,7 +401,6 @@ def main(page: ft.Page):
                             if not es_dtf_item:
                                 productos_db[prod_key]["stock"] -= cant
                             else:
-                                # SI ES DTF, SUMA AL TOTAL DE INVERSIÓN/COSTO DTF
                                 finanzas_db["total_gastos_dtf"] += monto_venta
 
                             metodo_pago = selector_pago.value
@@ -277,7 +415,8 @@ def main(page: ft.Page):
                             })
 
                             pedidos_db.pop(pedido_index)
-                            
+                            guardar_datos()  # Persistencia de datos
+
                             status_text.value = f"✔ PROCESADO | Cliente: {p['cliente']} | Total: ${monto_venta}"
                             status_text.color = "#00FF66"
                             
@@ -349,6 +488,8 @@ def main(page: ft.Page):
                     "detalle": f"Agregó +{cant} unidades a {prod_nombre} [{s_drop_talla.value}/{s_drop_color.value}] (Valor: ${costo_adicional})"
                 })
 
+                guardar_datos()  # Persistencia de datos
+
                 status_text.value = f"📦 REABASTECIDO: +{cant} unidades de {prod_nombre}. Total stock: {productos_db[key]['stock']}"
                 status_text.color = "#00E5FF"
                 actualizar_todos_los_dropdowns()
@@ -370,22 +511,13 @@ def main(page: ft.Page):
             ])
         )
 
-        # -------------------------------------------------------------
         # PESTAÑA PEDIDOS
-        # -------------------------------------------------------------
         p_input_cliente = ft.TextField(label="NOMBRE DEL CLIENTE", width=340, color="white")
         p_input_cant = ft.TextField(label="CANTIDAD", value="1", width=160, keyboard_type=ft.KeyboardType.NUMBER, color="white")
-        
         p_drop_talla = ft.Dropdown(label="TALLA", width=160, options=[ft.dropdown.Option(t) for t in TALLAS], color="white")
         p_drop_color = crear_selector_color()
         p_input_diseno = ft.TextField(label="DISEÑO DETALLADO", width=340, color="white")
-
-        p_drop_prod = ft.Dropdown(
-            label="PRODUCTO",
-            width=340,
-            options=obtener_opciones_productos(),
-            color="white"
-        )
+        p_drop_prod = ft.Dropdown(label="PRODUCTO", width=340, options=obtener_opciones_productos(), color="white")
 
         dinamic_form_area = ft.Column()
 
@@ -394,14 +526,9 @@ def main(page: ft.Page):
             es_dtf = productos_db.get(val, {}).get("es_dtf", False) if val else False
             
             dinamic_form_area.controls.clear()
-            
             if es_dtf:
                 p_input_cant.label = "CANTIDAD EN METROS"
-                dinamic_form_area.controls.append(
-                    ft.Column([
-                        p_input_cant
-                    ])
-                )
+                dinamic_form_area.controls.append(ft.Column([p_input_cant]))
             else:
                 p_input_cant.label = "CANTIDAD"
                 dinamic_form_area.controls.append(
@@ -490,6 +617,7 @@ def main(page: ft.Page):
                 })
 
             pedidos_db.append(nuevo_pedido)
+            guardar_datos()  # Persistencia de datos
 
             status_text.value = f"📝 PEDIDO REGISTRADO PARA {nuevo_pedido['cliente']}"
             status_text.color = "#FF9900"
@@ -546,7 +674,7 @@ def main(page: ft.Page):
             ])
         )
 
-        # FINANZAS ACTUALIZADO
+        # FINANZAS
         tab_finanzas = ft.Container(
             padding=15,
             content=ft.Column([
@@ -612,6 +740,8 @@ def main(page: ft.Page):
                     status_text.color = "#FFCC00"
                 else:
                     productos_db[key]["precio"] = float(a_input_precio.value)
+                    guardar_datos()  # Persistencia de datos
+
                     status_text.value = f"💲 PRECIO ACTUALIZADO A ${productos_db[key]['precio']}"
                     status_text.color = "#BD00FF"
                     actualizar_todos_los_dropdowns()
@@ -636,6 +766,8 @@ def main(page: ft.Page):
                         "es_dtf": False
                     }
                     finanzas_db["total_invertido_stock"] += int(a_nuevo_stock.value or 0) * float(a_nuevo_precio.value or 0)
+                    guardar_datos()  # Persistencia de datos
+
                     status_text.value = f"🔥 NUEVO MODELO '{a_nuevo_nombre.value.upper()}' CREADO."
                     status_text.color = "#BD00FF"
                     actualizar_todos_los_dropdowns()
