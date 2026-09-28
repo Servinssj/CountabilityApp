@@ -25,15 +25,15 @@ DEFAULT_USUARIOS_DB = {
 }
 
 DEFAULT_PRODUCTOS_DB = {
-    "P001": {"nombre": "PLAYERA REGULAR - JHK", "stock": 0, "precio": 500, "es_dtf": False},
-    "P002": {"nombre": "PLAYERA OVERSIZED - JHK", "stock": 0, "precio": 450, "es_dtf": False},
-    "P003": {"nombre": "HOODIE - JHK", "stock": 0, "precio": 850, "es_dtf": False},
-    "P004": {"nombre": "SUETER - JHK", "stock": 0, "precio": 750, "es_dtf": False},
-    "P005": {"nombre": "PLAYERA MALAGA - CBK (Regular)", "stock": 0, "precio": 950, "es_dtf": False},
-    "P006": {"nombre": "PLAYERA MÉRIDA - CBK (Oversized)", "stock": 0, "precio": 950, "es_dtf": False},
-    "P007": {"nombre": "PLAYERA MALAGA - CBK (Mineral Wash)", "stock": 0, "precio": 950, "es_dtf": False},
-    "P008": {"nombre": "PLAYERA TAMPA - CBK (BOXY)", "stock": 0, "precio": 950, "es_dtf": False},
-    "P_DTF": {"nombre": "IMPRESIÓN DTF (MEDIDA ESPECIAL)", "stock": 0, "precio": 0, "es_dtf": True},
+    "P001": {"nombre": "PLAYERA REGULAR - JHK", "stock": 0, "precio": 500, "es_dtf": False, "variaciones": {}},
+    "P002": {"nombre": "PLAYERA OVERSIZED - JHK", "stock": 0, "precio": 450, "es_dtf": False, "variaciones": {}},
+    "P003": {"nombre": "HOODIE - JHK", "stock": 0, "precio": 850, "es_dtf": False, "variaciones": {}},
+    "P004": {"nombre": "SUETER - JHK", "stock": 0, "precio": 750, "es_dtf": False, "variaciones": {}},
+    "P005": {"nombre": "PLAYERA MALAGA - CBK (Regular)", "stock": 0, "precio": 950, "es_dtf": False, "variaciones": {}},
+    "P006": {"nombre": "PLAYERA MÉRIDA - CBK (Oversized)", "stock": 0, "precio": 950, "es_dtf": False, "variaciones": {}},
+    "P007": {"nombre": "PLAYERA MALAGA - CBK (Mineral Wash)", "stock": 0, "precio": 950, "es_dtf": False, "variaciones": {}},
+    "P008": {"nombre": "PLAYERA TAMPA - CBK (BOXY)", "stock": 0, "precio": 950, "es_dtf": False, "variaciones": {}},
+    "P_DTF": {"nombre": "IMPRESIÓN DTF (MEDIDA ESPECIAL)", "stock": 0, "precio": 0, "es_dtf": True, "variaciones": {}},
 }
 
 DEFAULT_FINANZAS_DB = {
@@ -333,6 +333,83 @@ def main(page: ft.Page):
             ])
         )
 
+        # POP-UP / DIÁLOGO DE DETALLES POR TALLA Y COLOR
+        def mostrar_popup_detalles_stock(prod_key):
+            prod = productos_db.get(prod_key, {})
+            variaciones = prod.get("variaciones", {})
+            stock_general = prod.get("stock", 0)
+
+            filas_detalles = []
+            
+            # Recorrer variaciones registradas
+            if isinstance(variaciones, dict):
+                for talla, colores in variaciones.items():
+                    if isinstance(colores, dict):
+                        for color, cantidad in colores.items():
+                            if cantidad > 0:
+                                dot_color = COLORES_HEX.get(color, "#FFFFFF")
+                                filas_detalles.append(
+                                    ft.Container(
+                                        padding=10,
+                                        bgcolor="#222222",
+                                        border_radius=6,
+                                        border=ft.Border.all(1, "#333333"),
+                                        content=ft.Row([
+                                            ft.Row([
+                                                ft.Container(width=12, height=12, border_radius=6, bgcolor=dot_color, border=ft.Border.all(1, "#555555")),
+                                                ft.Text(f"Talla: {talla}", color="white", weight=ft.FontWeight.BOLD, size=13),
+                                                ft.Text(f"| Color: {color}", color="#CCCCCC", size=13)
+                                            ], spacing=8),
+                                            ft.Text(f"{cantidad} uds.", color="#00E5FF", weight=ft.FontWeight.BOLD, size=14)
+                                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+                                    )
+                                )
+
+            # CORRECCIÓN: Si no hay desglose específico pero el producto tiene stock acumulado general
+            if not filas_detalles and stock_general > 0:
+                filas_detalles.append(
+                    ft.Container(
+                        padding=10,
+                        bgcolor="#222222",
+                        border_radius=6,
+                        border=ft.Border.all(1, "#333333"),
+                        content=ft.Row([
+                            ft.Row([
+                                ft.Container(width=12, height=12, border_radius=6, bgcolor="#FFFFFF", border=ft.Border.all(1, "#555555")),
+                                ft.Text("Talla: Unica / General", color="white", weight=ft.FontWeight.BOLD, size=13),
+                                ft.Text("| Color: Estándar", color="#CCCCCC", size=13)
+                            ], spacing=8),
+                            ft.Text(f"{stock_general} uds.", color="#00E5FF", weight=ft.FontWeight.BOLD, size=14)
+                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+                    )
+                )
+
+            if not filas_detalles:
+                contenido = ft.Text("Sin existencias en stock actualmente.", color="#888888", size=13)
+            else:
+                contenido = ft.Column(filas_detalles, spacing=8, scroll=ft.ScrollMode.AUTO, height=260)
+
+            def cerrar_popup_detalles(e):
+                dlg_detalles.open = False
+                page.update()
+
+            dlg_detalles = ft.AlertDialog(
+                modal=True,
+                title=ft.Column([
+                    ft.Text("📦 DETALLE DE STOCK", size=12, color="#888888", weight=ft.FontWeight.BOLD),
+                    ft.Text(f"{prod.get('nombre', '')}", size=16, weight=ft.FontWeight.BOLD, color="#00E5FF"),
+                ], spacing=2),
+                content=ft.Container(content=contenido, width=320),
+                actions=[
+                    ft.Button("CERRAR", on_click=cerrar_popup_detalles, style=ft.ButtonStyle(color="white", bgcolor="#222222"))
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+            )
+
+            page.overlay.append(dlg_detalles)
+            dlg_detalles.open = True
+            page.update()
+
         # RENDERIZADOR DEL DASHBOARD VISUAL DE STOCK
         def renderizar_visualizador_stock():
             grid_visual_stock_ui.controls.clear()
@@ -368,13 +445,15 @@ def main(page: ft.Page):
                     bgcolor="#181818",
                     border_radius=8,
                     border=ft.Border.all(1, "#2D2D2D"),
+                    on_click=lambda e, k=key: mostrar_popup_detalles_stock(k),
+                    ink=True,
                     content=ft.Column([
                         ft.Row([
                             ft.Text(f"#{key}", size=11, weight=ft.FontWeight.BOLD, color="#888888"),
                             ft.Container(
                                 content=ft.Text(badge_text, size=10, weight=ft.FontWeight.BOLD, color="black"),
                                 bgcolor=badge_color,
-                                padding=ft.Padding.symmetric(horizontal=8, vertical=3),
+                                padding=ft.Padding(8, 3, 8, 3),
                                 border_radius=12
                             )
                         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
@@ -393,7 +472,11 @@ def main(page: ft.Page):
                                 ft.Text("VALOR EN STOCK", size=10, color="#888888", weight=ft.FontWeight.BOLD),
                                 ft.Text(f"${valor_total_prod:,.2f}", size=16, color="#00E5FF", weight=ft.FontWeight.BOLD)
                             ], spacing=2, horizontal_alignment=ft.CrossAxisAlignment.END)
-                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                        
+                        ft.Row([
+                            ft.Text("🔍 Haz clic para ver tallas y colores", size=10, color="#888888", italic=True)
+                        ], alignment=ft.MainAxisAlignment.CENTER)
                     ], spacing=10)
                 )
                 
@@ -422,8 +505,8 @@ def main(page: ft.Page):
                 lista_historial_ui.controls.append(ft.Text("No hay registros de actividad aún.", color="#888888", size=14))
             else:
                 for h in reversed(historial_db):
-                    icon_map = {"pedido": "📝", "venta": "🛒", "stock": "📦", "gasto": "💸"}
-                    color_map = {"pedido": "#FF9900", "venta": "#00FF66", "stock": "#00E5FF", "gasto": "#FF3333"}
+                    icon_map = {"pedido": "📝", "venta": "🛒", "stock": "📦", "gasto": "💸", "admin": "⚠️"}
+                    color_map = {"pedido": "#FF9900", "venta": "#00FF66", "stock": "#00E5FF", "gasto": "#FF3333", "admin": "#FF3333"}
                     
                     lista_historial_ui.controls.append(
                         ft.Container(
@@ -496,6 +579,14 @@ def main(page: ft.Page):
                         else:
                             if not es_dtf_item:
                                 productos_db[prod_key]["stock"] -= cant
+                                
+                                # Descontar también del registro de variaciones si existe
+                                talla_p = p.get("talla")
+                                color_p = p.get("color")
+                                if "variaciones" in productos_db[prod_key]:
+                                    vars_map = productos_db[prod_key]["variaciones"]
+                                    if talla_p in vars_map and color_p in vars_map[talla_p]:
+                                        vars_map[talla_p][color_p] = max(0, vars_map[talla_p][color_p] - cant)
                             else:
                                 finanzas_db["total_gastos_dtf"] += monto_venta
 
@@ -511,7 +602,7 @@ def main(page: ft.Page):
                             })
 
                             pedidos_db.pop(pedido_index)
-                            guardar_datos()  # Persistencia en Google Sheets
+                            guardar_datos()
 
                             status_text.value = f"✔ PROCESADO | Cliente: {p['cliente']} | Total: ${monto_venta}"
                             status_text.color = "#00FF66"
@@ -583,7 +674,21 @@ def main(page: ft.Page):
                 status_text.color = "#FFCC00"
             else:
                 cant = int(s_input_cant.value or 0)
+                talla_val = s_drop_talla.value
+                color_val = s_drop_color.value
+
                 productos_db[key]["stock"] += cant
+                
+                # Guardar o actualizar la variación específica de talla y color
+                if "variaciones" not in productos_db[key] or not isinstance(productos_db[key]["variaciones"], dict):
+                    productos_db[key]["variaciones"] = {}
+                
+                if talla_val not in productos_db[key]["variaciones"]:
+                    productos_db[key]["variaciones"][talla_val] = {}
+                
+                cant_actual_var = productos_db[key]["variaciones"][talla_val].get(color_val, 0)
+                productos_db[key]["variaciones"][talla_val][color_val] = cant_actual_var + cant
+
                 prod_nombre = productos_db[key]["nombre"]
                 
                 costo_adicional = productos_db[key]["precio"] * cant
@@ -592,10 +697,10 @@ def main(page: ft.Page):
                 historial_db.append({
                     "tipo": "stock",
                     "usuario": usuario_actual["nombre"].upper(),
-                    "detalle": f"Agregó +{cant} unidades a {prod_nombre} [{s_drop_talla.value}/{s_drop_color.value}] (Valor: ${costo_adicional})"
+                    "detalle": f"Agregó +{cant} unidades a {prod_nombre} [{talla_val}/{color_val}] (Valor: ${costo_adicional})"
                 })
 
-                guardar_datos()  # Persistencia en Google Sheets
+                guardar_datos()
 
                 status_text.value = f"📦 REABASTECIDO: +{cant} unidades de {prod_nombre}. Total stock: {productos_db[key]['stock']}"
                 status_text.color = "#00E5FF"
@@ -620,7 +725,7 @@ def main(page: ft.Page):
                 ft.Divider(color="#333333", height=30),
                 
                 ft.Text("📊 MONITOREO DE STOCK EN TIEMPO REAL", size=16, weight=ft.FontWeight.BOLD, color="#00E5FF"),
-                ft.Text("Nivel general de existencias por modelo:", size=13, color="#888888"),
+                ft.Text("Nivel general de existencias por modelo (haz clic para detalles por talla/color):", size=13, color="#888888"),
                 ft.Container(height=5),
                 grid_visual_stock_ui
             ])
@@ -732,7 +837,7 @@ def main(page: ft.Page):
                 })
 
             pedidos_db.append(nuevo_pedido)
-            guardar_datos()  # Persistencia en Google Sheets
+            guardar_datos()
 
             status_text.value = f"📝 PEDIDO REGISTRADO PARA {nuevo_pedido['cliente']}"
             status_text.color = "#FF9900"
@@ -856,7 +961,7 @@ def main(page: ft.Page):
                     status_text.color = "#FFCC00"
                 else:
                     productos_db[key]["precio"] = float(a_input_precio.value)
-                    guardar_datos()  # Persistencia en Google Sheets
+                    guardar_datos()
 
                     status_text.value = f"💲 PRECIO ACTUALIZADO A ${productos_db[key]['precio']}"
                     status_text.color = "#BD00FF"
@@ -880,16 +985,67 @@ def main(page: ft.Page):
                         "nombre": a_nuevo_nombre.value.upper(),
                         "stock": int(a_nuevo_stock.value or 0),
                         "precio": float(a_nuevo_precio.value or 0),
-                        "es_dtf": False
+                        "es_dtf": False,
+                        "variaciones": {}
                     }
                     finanzas_db["total_invertido_stock"] += int(a_nuevo_stock.value or 0) * float(a_nuevo_precio.value or 0)
-                    guardar_datos()  # Persistencia en Google Sheets
+                    guardar_datos()
 
                     status_text.value = f"🔥 NUEVO MODELO '{a_nuevo_nombre.value.upper()}' CREADO."
                     status_text.color = "#BD00FF"
                     actualizar_todos_los_dropdowns()
                     renderizar_visualizador_stock()
                     renderizar_finanzas()
+                page.update()
+
+            # FUNCIONALIDAD: RESETEAR BD (STOCK / FINANZAS A 0)
+            def abrir_modal_resetear_bd(e):
+                def ejecutar_reset(ev):
+                    # 1. Resetear stock y variaciones en todos los productos
+                    for prod_key, prod in productos_db.items():
+                        prod["stock"] = 0
+                        prod["variaciones"] = {}
+
+                    # 2. Resetear variables de finanzas a cero
+                    finanzas_db["total_ingresado_ventas"] = 0.0
+                    finanzas_db["total_invertido_stock"] = 0.0
+                    finanzas_db["total_gastos_dtf"] = 0.0
+
+                    # 3. Registrar acción en el historial
+                    historial_db.append({
+                        "tipo": "admin",
+                        "usuario": usuario_actual["nombre"].upper(),
+                        "detalle": "⚠️ RESET GENERAL REALIZADO: Stock e inversión/ventas restablecidos a 0."
+                    })
+
+                    guardar_datos()
+                    dlg_reset.open = False
+
+                    status_text.value = "⚠️ RESET COMPLETADO: Stock y finanzas fueron enviados a $0.00."
+                    status_text.color = "#FF3333"
+
+                    renderizar_visualizador_stock()
+                    renderizar_finanzas()
+                    renderizar_historial()
+                    page.update()
+
+                def cancelar_reset(ev):
+                    dlg_reset.open = False
+                    page.update()
+
+                dlg_reset = ft.AlertDialog(
+                    modal=True,
+                    title=ft.Text("⚠️ CONFIRMAR RESETEO", weight=ft.FontWeight.BOLD, color="#FF3333"),
+                    content=ft.Text("¿Estás seguro de que deseas enviar a 0 todo el STOCK acumulado, la INVERSIÓN y las VENTAS de la base de datos?\n\nEsta acción no se puede deshacer.", color="white"),
+                    actions=[
+                        ft.Button("CANCELAR", on_click=cancelar_reset, style=ft.ButtonStyle(color="white")),
+                        ft.Button("SÍ, RESETEAR A 0", on_click=ejecutar_reset, style=ft.ButtonStyle(color="white", bgcolor="#FF3333"))
+                    ],
+                    actions_alignment=ft.MainAxisAlignment.END,
+                )
+
+                page.overlay.append(dlg_reset)
+                dlg_reset.open = True
                 page.update()
 
             tab_historial = ft.Container(
@@ -918,7 +1074,14 @@ def main(page: ft.Page):
                         a_nuevo_stock,
                         a_nuevo_precio,
                         ft.Button("CREAR PRODUCTO", on_click=crear_producto, style=ft.ButtonStyle(color="black", bgcolor="white"))
-                    ], wrap=True)
+                    ], wrap=True),
+                    ft.Divider(color="#333333"),
+                    ft.Text("⚠️ ZONA DE PELIGRO / REINICIO DE DATOS", size=14, weight=ft.FontWeight.BOLD, color="#FF3333"),
+                    ft.Button(
+                        "⚠️ RESETEAR BD (STOCK / FINANZAS A 0)",
+                        on_click=abrir_modal_resetear_bd,
+                        style=ft.ButtonStyle(color="white", bgcolor="#FF3333", shape=ft.RoundedRectangleBorder(radius=4))
+                    )
                 ])
             )
 
