@@ -46,14 +46,21 @@ DEFAULT_FINANZAS_DB = {
 # CONEXIÓN Y PERSISTENCIA CON GOOGLE SHEETS
 # -------------------------------------------------------------
 def obtener_cliente_sheets():
-    # Intenta leer desde la variable de entorno de Render; si no, usa el archivo local credentials.json
+    # 1. Primero intenta leer la variable de entorno (para Render)
     if "GOOGLE_CREDENTIALS" in os.environ:
         creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS"])
         creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+        return gspread.authorize(creds)
+
+    # 2. Si no hay variable de entorno, busca el archivo local (para tu PC)
+    elif os.path.exists("credentials.json"):
+        creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+        return gspread.authorize(creds)
+
+    # 3. Si no encuentra ninguno, advierte y retorna None
     else:
-        creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
-    
-    return gspread.authorize(creds)
+        print("⚠️ No se encontraron credenciales (ni archivo credentials.json ni variable GOOGLE_CREDENTIALS).")
+        return None
 
 def guardar_datos():
     data = {
@@ -65,9 +72,10 @@ def guardar_datos():
     }
     try:
         client = obtener_cliente_sheets()
-        sheet = client.open("GOTEO_DB").sheet1
-        sheet.update_acell("A1", json.dumps(data, ensure_ascii=False))
-        print("✔ Datos guardados exitosamente en Google Sheets.")
+        if client:
+            sheet = client.open("GOTEO_DB").sheet1
+            sheet.update_acell("A1", json.dumps(data, ensure_ascii=False))
+            print("✔ Datos guardados exitosamente en Google Sheets.")
     except Exception as err:
         print(f"Error al guardar datos en Google Sheets: {err}")
 
@@ -75,17 +83,18 @@ def cargar_datos():
     global USUARIOS_DB, productos_db, pedidos_db, historial_db, finanzas_db
     try:
         client = obtener_cliente_sheets()
-        sheet = client.open("GOTEO_DB").sheet1
-        val = sheet.acell("A1").value
-        if val:
-            data = json.loads(val)
-            USUARIOS_DB = data.get("usuarios", DEFAULT_USUARIOS_DB)
-            productos_db = data.get("productos", DEFAULT_PRODUCTOS_DB)
-            pedidos_db = data.get("pedidos", [])
-            historial_db = data.get("historial", [])
-            finanzas_db = data.get("finanzas", DEFAULT_FINANZAS_DB)
-            print("✔ Datos cargados correctamente desde Google Sheets.")
-            return
+        if client:
+            sheet = client.open("GOTEO_DB").sheet1
+            val = sheet.acell("A1").value
+            if val:
+                data = json.loads(val)
+                USUARIOS_DB = data.get("usuarios", DEFAULT_USUARIOS_DB)
+                productos_db = data.get("productos", DEFAULT_PRODUCTOS_DB)
+                pedidos_db = data.get("pedidos", [])
+                historial_db = data.get("historial", [])
+                finanzas_db = data.get("finanzas", DEFAULT_FINANZAS_DB)
+                print("✔ Datos cargados correctamente desde Google Sheets.")
+                return
     except Exception as err:
         print(f"Error al cargar desde Google Sheets (usando valores por defecto): {err}")
 
@@ -95,7 +104,6 @@ def cargar_datos():
     pedidos_db = []
     historial_db = []
     finanzas_db = DEFAULT_FINANZAS_DB
-    guardar_datos()
 
 # Inicialización de bases de datos
 USUARIOS_DB = {}
@@ -294,8 +302,6 @@ def main(page: ft.Page):
                 options=[ft.dropdown.Option(c) for c in COLORES_HEX.keys()],
                 value=val_inicial,
                 color="white",
-                border_color="#666666",
-                focused_border_color="#00FF66"
             )
 
             def on_color_change(e):
@@ -303,8 +309,6 @@ def main(page: ft.Page):
                 if c_name in COLORES_HEX:
                     hex_val = COLORES_HEX[c_name]
                     dropdown.color = "white" if c_name == "Negro" else hex_val
-                    dropdown.border_color = hex_val
-                    dropdown.focused_border_color = hex_val
                     dropdown.update()
 
             dropdown.on_change = on_color_change
@@ -313,6 +317,9 @@ def main(page: ft.Page):
         lista_pedidos_ui = ft.Column()
         lista_ventas_pedidos_ui = ft.Column()
         lista_historial_ui = ft.Column(spacing=10)
+        
+        # CONTENEDOR GRID VISUAL DEL STOCK
+        grid_visual_stock_ui = ft.Row(wrap=True, spacing=15)
 
         txt_ventas_total = ft.Text("$0.00", size=26, weight=ft.FontWeight.BOLD, color="#00FF66")
         txt_stock_total = ft.Text("$0.00", size=26, weight=ft.FontWeight.BOLD, color="#00E5FF")
@@ -325,6 +332,72 @@ def main(page: ft.Page):
                 txt_balance_neto
             ])
         )
+
+        # RENDERIZADOR DEL DASHBOARD VISUAL DE STOCK
+        def renderizar_visualizador_stock():
+            grid_visual_stock_ui.controls.clear()
+            
+            for key, prod in productos_db.items():
+                if prod.get("es_dtf"):
+                    continue
+                
+                cant_stock = prod.get("stock", 0)
+                precio_u = prod.get("precio", 0.0)
+                valor_total_prod = cant_stock * precio_u
+
+                # Determinar estatus y color según nivel de stock
+                if cant_stock == 0:
+                    badge_color = "#FF3333"
+                    badge_text = "🔴 SIN STOCK"
+                    progress_color = "#FF3333"
+                    progress_val = 0.02
+                elif cant_stock <= 3:
+                    badge_color = "#FFCC00"
+                    badge_text = "🟡 STOCK BAJO"
+                    progress_color = "#FFCC00"
+                    progress_val = min(cant_stock / 10, 1.0)
+                else:
+                    badge_color = "#00FF66"
+                    badge_text = "🟢 EN STOCK"
+                    progress_color = "#00FF66"
+                    progress_val = min(cant_stock / 20, 1.0)
+
+                tarjeta = ft.Container(
+                    width=300,
+                    padding=15,
+                    bgcolor="#181818",
+                    border_radius=8,
+                    border=ft.Border.all(1, "#2D2D2D"),
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Text(f"#{key}", size=11, weight=ft.FontWeight.BOLD, color="#888888"),
+                            ft.Container(
+                                content=ft.Text(badge_text, size=10, weight=ft.FontWeight.BOLD, color="black"),
+                                bgcolor=badge_color,
+                                padding=ft.Padding.symmetric(horizontal=8, vertical=3),
+                                border_radius=12
+                            )
+                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                        
+                        ft.Text(prod["nombre"], size=13, weight=ft.FontWeight.BOLD, color="white", max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
+                        
+                        ft.ProgressBar(value=progress_val, color=progress_color, bgcolor="#2A2A2A", height=6),
+                        
+                        ft.Row([
+                            ft.Column([
+                                ft.Text("CANTIDAD", size=10, color="#888888", weight=ft.FontWeight.BOLD),
+                                ft.Text(f"{cant_stock} uds.", size=18, color="white", weight=ft.FontWeight.W_900)
+                            ], spacing=2),
+                            
+                            ft.Column([
+                                ft.Text("VALOR EN STOCK", size=10, color="#888888", weight=ft.FontWeight.BOLD),
+                                ft.Text(f"${valor_total_prod:,.2f}", size=16, color="#00E5FF", weight=ft.FontWeight.BOLD)
+                            ], spacing=2, horizontal_alignment=ft.CrossAxisAlignment.END)
+                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+                    ], spacing=10)
+                )
+                
+                grid_visual_stock_ui.controls.append(tarjeta)
 
         def renderizar_finanzas():
             v_total = finanzas_db.get("total_ingresado_ventas", 0.0)
@@ -446,6 +519,7 @@ def main(page: ft.Page):
                             actualizar_todos_los_dropdowns()
                             renderizar_pedidos()
                             renderizar_ventas_pedidos()
+                            renderizar_visualizador_stock()
                             renderizar_finanzas()
                             if usuario_actual["role"] == "admin":
                                 renderizar_historial()
@@ -526,6 +600,7 @@ def main(page: ft.Page):
                 status_text.value = f"📦 REABASTECIDO: +{cant} unidades de {prod_nombre}. Total stock: {productos_db[key]['stock']}"
                 status_text.color = "#00E5FF"
                 actualizar_todos_los_dropdowns()
+                renderizar_visualizador_stock()
                 renderizar_finanzas()
                 if usuario_actual["role"] == "admin":
                     renderizar_historial()
@@ -540,7 +615,14 @@ def main(page: ft.Page):
                 ft.Row([
                     s_input_cant,
                     ft.Button("+ AÑADIR STOCK", on_click=registrar_stock, style=ft.ButtonStyle(color="black", bgcolor="#00E5FF", shape=ft.RoundedRectangleBorder(radius=4)))
-                ], wrap=True)
+                ], wrap=True),
+                
+                ft.Divider(color="#333333", height=30),
+                
+                ft.Text("📊 MONITOREO DE STOCK EN TIEMPO REAL", size=16, weight=ft.FontWeight.BOLD, color="#00E5FF"),
+                ft.Text("Nivel general de existencias por modelo:", size=13, color="#888888"),
+                ft.Container(height=5),
+                grid_visual_stock_ui
             ])
         )
 
@@ -743,6 +825,7 @@ def main(page: ft.Page):
 
         renderizar_pedidos()
         renderizar_ventas_pedidos()
+        renderizar_visualizador_stock()
         renderizar_finanzas()
 
         tabs_map = {
@@ -779,6 +862,7 @@ def main(page: ft.Page):
                     status_text.color = "#BD00FF"
                     actualizar_todos_los_dropdowns()
                     renderizar_ventas_pedidos()
+                    renderizar_visualizador_stock()
                     renderizar_finanzas()
                 page.update()
 
@@ -804,6 +888,7 @@ def main(page: ft.Page):
                     status_text.value = f"🔥 NUEVO MODELO '{a_nuevo_nombre.value.upper()}' CREADO."
                     status_text.color = "#BD00FF"
                     actualizar_todos_los_dropdowns()
+                    renderizar_visualizador_stock()
                     renderizar_finanzas()
                 page.update()
 
