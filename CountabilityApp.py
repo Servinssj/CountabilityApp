@@ -428,22 +428,34 @@ def main(page: ft.Page):
                                 renderizar_historial()
                         page.update()
 
+                    # CÓDIGO CORREGIDO
                     item_row = ft.Container(
                         padding=12,
                         bgcolor="#1E1E1E",
                         border_radius=6,
                         content=ft.Column([
                             ft.Row([
+                                # Se agrega expand=True para que tome solo el espacio restante disponible
                                 ft.Column([
                                     ft.Text(f"👤 CLIENTE: {ped['cliente']}", size=14, weight=ft.FontWeight.BOLD, color="white"),
-                                    ft.Text(detalle_texto, size=13, color="#CCCCCC"),
-                                ]),
+                                    ft.Text(
+                                        detalle_texto, 
+                                        size=13, 
+                                        color="#CCCCCC", 
+                                        selectable=True  # Permite seleccionar si es necesario
+                                    ),
+                                ], expand=True),
+                                
                                 ft.Column([
                                     input_precio_final,
                                     drop_pago,
-                                    ft.Button("CONFIRMAR VENTA", on_click=concretar_venta, style=ft.ButtonStyle(color="black", bgcolor="#00FF66", shape=ft.RoundedRectangleBorder(radius=4)))
+                                    ft.Button(
+                                        "CONFIRMAR VENTA", 
+                                        on_click=concretar_venta, 
+                                        style=ft.ButtonStyle(color="black", bgcolor="#00FF66", shape=ft.RoundedRectangleBorder(radius=4))
+                                    )
                                 ], horizontal_alignment=ft.CrossAxisAlignment.END)
-                            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+                            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.START)
                         ])
                     )
                     lista_ventas_pedidos_ui.controls.append(item_row)
