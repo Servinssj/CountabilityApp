@@ -7,7 +7,7 @@ import flet as ft
 import gspread
 from google.oauth2.service_account import Credentials
 
-MAX_USUARIOS = 5  # Límite máximo de usuarios permitidos
+MAX_USUARIOS = 10  # Límite máximo de usuarios permitidos
 
 # Configuración y Scopes de Google Sheets
 SCOPES = [
